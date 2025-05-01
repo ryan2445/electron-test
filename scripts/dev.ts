@@ -1,24 +1,16 @@
-const { spawn } = require("child_process");
-const { createServer } = require("vite");
-const path = require("path");
-const electron = require("electron");
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { createServer } from "vite";
+import path from "path";
+import { watch } from "fs";
 
-/**
- * @type {import('child_process').ChildProcessWithoutNullStreams | null}
- */
-let electronProcess = null;
+let electronProcess: ChildProcessWithoutNullStreams | null = null;
 
-/**
- * Start the Electron app
- */
 function startElectron() {
   if (electronProcess) {
-    // Kill existing process if it exists
     electronProcess.kill();
     electronProcess = null;
   }
 
-  // Compile the main process code
   const proc = spawn("npx", ["tsc", "-p", "tsconfig.electron.json"], {
     shell: true,
     env: process.env,
@@ -31,10 +23,9 @@ function startElectron() {
       return;
     }
 
-    // Start Electron
     electronProcess = spawn(
-      electron,
-      [path.join(__dirname, "..", "dist", "main", "index.js")],
+      "npx",
+      ["electron", path.join(__dirname, "..", "dist", "main", "index.js")],
       {
         env: {
           ...process.env,
@@ -43,7 +34,6 @@ function startElectron() {
       }
     );
 
-    // Pipe output
     electronProcess.stdout.on("data", (data) => {
       console.log(`Electron: ${data.toString()}`);
     });
@@ -60,22 +50,16 @@ function startElectron() {
 
 async function start() {
   try {
-    // Start Vite dev server
     const server = await createServer({
-      // Vite config options
       configFile: path.join(__dirname, "..", "vite.config.ts"),
     });
     await server.listen();
 
-    // Log Vite server URL
     server.printUrls();
 
-    // Start Electron
     startElectron();
 
-    // Restart Electron when main process files change
     console.log("Watching main process files...");
-    const { watch } = require("fs");
     watch(
       path.join(__dirname, "..", "src", "main"),
       { recursive: true },
