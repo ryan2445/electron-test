@@ -1,39 +1,37 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import * as url from "url";
+import { fileURLToPath } from "url";
+import squirrelStartup from "electron-squirrel-startup";
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require("electron-squirrel-startup")) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+if (squirrelStartup) {
   app.quit();
 }
 
 const createWindow = () => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.resolve(__dirname, "..", "preload", "preload.cjs"),
     },
   });
 
-  // In production, set the initial browser path to the local bundle generated
-  // by the Create React App build process.
-  // In development, set it to localhost to allow live/hot-reloading.
   const MAIN_WINDOW_URL = app.isPackaged
     ? url.format({
-        pathname: path.join(__dirname, "..", "renderer", "index.html"),
+        pathname: path.resolve(__dirname, "..", "renderer", "index.html"),
         protocol: "file:",
         slashes: true,
       })
     : "http://localhost:5173";
 
-  // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_URL);
 
-  // Open the DevTools.
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }

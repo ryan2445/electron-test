@@ -2,6 +2,10 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { createServer } from "vite";
 import path from "path";
 import { watch } from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let electronProcess: ChildProcessWithoutNullStreams | null = null;
 
@@ -11,11 +15,20 @@ function startElectron() {
     electronProcess = null;
   }
 
-  const proc = spawn("npx", ["tsc", "-p", "tsconfig.electron.json"], {
-    shell: true,
-    env: process.env,
-    stdio: "inherit",
-  });
+  const proc = spawn(
+    "npx",
+    [
+      "vite",
+      "build",
+      "--config",
+      path.resolve(__dirname, "..", "src", "main", "vite.config.ts"),
+    ],
+    {
+      shell: true,
+      env: process.env,
+      stdio: "inherit",
+    }
+  );
 
   proc.on("close", (code) => {
     if (code !== 0) {
@@ -25,7 +38,7 @@ function startElectron() {
 
     electronProcess = spawn(
       "npx",
-      ["electron", path.join(__dirname, "..", "dist", "main", "index.js")],
+      ["electron", path.resolve(__dirname, "..", "dist", "main", "index.js")],
       {
         env: {
           ...process.env,
@@ -51,7 +64,13 @@ function startElectron() {
 async function start() {
   try {
     const server = await createServer({
-      configFile: path.join(__dirname, "..", "vite.config.ts"),
+      configFile: path.resolve(
+        __dirname,
+        "..",
+        "src",
+        "renderer",
+        "vite.config.ts"
+      ),
     });
     await server.listen();
 
@@ -61,7 +80,7 @@ async function start() {
 
     console.log("Watching main process files...");
     watch(
-      path.join(__dirname, "..", "src", "main"),
+      path.resolve(__dirname, "..", "src", "main"),
       { recursive: true },
       () => {
         console.log("Main process files changed, restarting Electron...");
